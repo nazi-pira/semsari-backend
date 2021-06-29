@@ -27,7 +27,6 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// eslint-disable-next-line no-undef
 mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.set('debug', true);
 
