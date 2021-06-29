@@ -2,40 +2,53 @@ import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import mongoose from "mongoose";
+import path from "path"
+import session from "express-session"
+import errorHandler from 'errorhandler'
 
-const mongoUrl = process.env.MONGO_URL || "mongodb://0.0.0.0/happyThoughts";
-mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
-mongoose.Promise = Promise;
+import routes from './routes/index'
 
-const Thought = mongoose.model("Thought", {
-  message: {
-    type: String,
-    required: true,
-    minlength: 5,
-    maxlength: 140,
-  },
-  hearts: {
-    type: Number,
-    default: 0,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+mongoose.promise = global.Promise;
+
+const mongoUrl = process.env.MONGO_URL || "mongodb://0.0.0.0/semsari";
+const environment = process.env.NODE_ENV
 
 const port = process.env.PORT || 8080;
 const app = express();
 
-app.use(cors({ origin: true }));
-app.use(bodyParser.json());
+// Configure
+app.use(cors());
+app.use(require('morgan')('dev'));
 
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  res.header("Access-Control-Allow-Credentials", true);
-  next();
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({ 
+  secret: 'secret',
+  cookie: { maxAge: 60000 },
+  resave: false, 
+  saveUninitialized: false
+}));
+
+mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.set('debug', true);
+
+require('./config/passport');
+
+app.use(routes)
+
+// Error handlers
+app.use((err, req, res) => {
+  res.status(err.status || 500);
+  res.json({
+    errors: {
+      message: err.message,
+      error: err ? environment !== 'production' : null
+    },
+  });
 });
+
+app.use(errorHandler());
 
 // Middleware to check so MongoDB connection is OK
 app.use((res, req, next) => {
@@ -43,45 +56,6 @@ app.use((res, req, next) => {
     next();
   } else {
     res.status(503).json({ error: "Service unavailable" });
-  }
-});
-
-// GET - All 'thoughts'
-app.get("/api/thoughts", async (req, res) => {
-  console.log("get end point is called");
-  try {
-    const thoughts = await Thought.find()
-      .sort({ createdAt: "desc" })
-      .limit(20)
-      .exec();
-    return res.json(thoughts).status(200);
-  } catch (err) {
-    res.status(400).json({ message: "Error. Could not get thoughts" });
-  }
-});
-
-// POST - Create a 'thought'
-app.post("/api/thought", async (req, res) => {
-  const { message } = req.body;
-  try {
-    const thought = await new Thought({ message }).save();
-    res.status(201).json(thought);
-  } catch (err) {
-    res.status(400).json({ message: "Unable to save", error: err.errors });
-  }
-});
-
-// POST - Like a 'thought'
-app.post("/api/thought/:thoughtId/like", async (req, res) => {
-  try {
-    const like = await Thought.findOneAndUpdate(
-      { _id: req.params.thoughtId },
-      { $inc: { hearts: 1 } },
-      { returnNewDocument: true }
-    );
-    res.json(like).status(201);
-  } catch (err) {
-    res.status(400).json({ message: "Could not save like", error: err });
   }
 });
 
