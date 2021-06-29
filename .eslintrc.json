@@ -32,6 +32,7 @@
         "allowSingleLine": true
       }
     ],
+    "no-underscore-dangle": "off",
     "comma-dangle": [
       "error",
       "never"

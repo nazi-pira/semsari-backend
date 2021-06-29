@@ -6,14 +6,11 @@ import path from "path"
 import session from "express-session"
 import errorHandler from 'errorhandler'
 
+import { MONGO_URL, SECRET, PORT } from './config/config'
 import routes from './routes/index'
 
 mongoose.promise = global.Promise;
 
-const mongoUrl = process.env.MONGO_URL || "mongodb://0.0.0.0/semsari";
-const environment = process.env.NODE_ENV
-
-const port = process.env.PORT || 8080;
 const app = express();
 
 // Configure
@@ -24,13 +21,14 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({ 
-  secret: 'secret',
+  secret: SECRET,
   cookie: { maxAge: 60000 },
   resave: false, 
   saveUninitialized: false
 }));
 
-mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
+// eslint-disable-next-line no-undef
+mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.set('debug', true);
 
 require('./config/passport');
@@ -43,8 +41,8 @@ app.use((err, req, res) => {
   res.json({
     errors: {
       message: err.message,
-      error: err ? environment !== 'production' : null
-    },
+      error: err ? process.env.NODE_ENV !== 'production' : null
+    }
   });
 });
 
@@ -59,7 +57,7 @@ app.use((res, req, next) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
