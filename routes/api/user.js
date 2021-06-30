@@ -31,6 +31,7 @@ router.post('/register', auth.optional, async (req, res) => {
   try {
     const newUser = await new User(body);
     newUser.setPassword(body.password);
+
     await newUser.save()
     res.status(203).json({ user: newUser.toAuthJSON() })
   } catch (err) {

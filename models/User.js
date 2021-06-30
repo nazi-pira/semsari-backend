@@ -1,3 +1,4 @@
+/* eslint-disable func-names */
 import mongoose, { Schema } from 'mongoose'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken';
@@ -21,7 +22,7 @@ const UserSchema = new Schema({
     type: Date,
     default: Date.now
   },
-  phone_number: {
+  phone: {
     type: String,
     required: true
   },
@@ -32,21 +33,22 @@ const UserSchema = new Schema({
     type: String
   },
   salt: {
+    type: String
   }
 });
 
 // Methods to 'convert' password to salt and hash
-UserSchema.methods.setPassword = (password) => {
+UserSchema.methods.setPassword = function (password) {
   this.salt = crypto.randomBytes(16).toString('hex');
   this.hash = crypto.pbkdf2Sync(password, this.salt, 10000, 512, 'sha512').toString('hex');
 };
 
-UserSchema.methods.validatePassword = (password) => {
+UserSchema.methods.validatePassword = function (password) {
   const hash = crypto.pbkdf2Sync(password, this.salt, 10000, 512, 'sha512').toString('hex');
   return this.hash === hash;
 };
 
-UserSchema.methods.generateJWT = () => {
+UserSchema.methods.generateJWT = function () {
   const today = new Date();
   const expirationDate = new Date(today);
   expirationDate.setDate(today.getDate() + 60);
@@ -58,7 +60,7 @@ UserSchema.methods.generateJWT = () => {
   }, SECRET);
 }
 
-UserSchema.methods.toAuthJSON = () => {
+UserSchema.methods.toAuthJSON = function () {
   return {
     _id: this._id,
     email: this.email,

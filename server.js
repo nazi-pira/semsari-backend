@@ -30,6 +30,7 @@ app.use(session({
 mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.set('debug', true);
 
+require('./models/User');
 require('./config/passport');
 
 app.use(routes)
