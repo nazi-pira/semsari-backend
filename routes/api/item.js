@@ -12,7 +12,7 @@ const router = Router();
   GET /api/item 
 */
 router.get("/", async (req, res) => {
-  const { query: { search, maxPrice, minPrice, city, category, sort, order, limit } } = req;
+  const { query: { search, minPrice, maxPrice, city, category, sort, order, limit } } = req;
   const sorting = {}
   sorting[sort || "created"] = order || "desc"
 
@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
     const items = await Item.find(
       {
         title: { $regex: search || '.', $options: "i" },
-        $and: ([{ price: { $lte: maxPrice || 0 } }, { price: { $gte: minPrice || 9999999 } }]),
+        $and: ([{ price: { $gte: minPrice || 0 } }, { price: { $lte: maxPrice || 99999999 } }]),
         city,
         category
       }
