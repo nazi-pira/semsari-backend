@@ -11,7 +11,7 @@ passport.use(new LocalStrategy({
     const user = await User.findOne({ email })
 
     if (!user || !user.validatePassword(password)) {
-      return done(null, false, { errors: { 'email or password': 'is invalid' } });
+      return done(null, false, { message: 'email or password is invalid' });
     }
     return done(null, user);
   } catch (err) {
