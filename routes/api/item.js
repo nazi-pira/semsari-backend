@@ -25,8 +25,8 @@ router.get("/", async (req, res) => {
         city,
         category
       }
-    ).sort(sorting).populate({ path: 'user', model: 'User', select: 'name lastname image' }).limit(Number(limit) || 1000).exec()
-    console.log("items", items, "\n");
+    ).sort(sorting).populate({ path: 'user', model: 'User', select: 'name lastname image' }).limit(Number(limit) || 1000)
+      .exec()
     return res.json(items).status(200);
   } catch (err) {
     res.status(400).json({ message: "Error. Could not get items" });
@@ -39,12 +39,9 @@ router.get("/", async (req, res) => {
 */
 router.get("/:itemId", async (req, res) => {
   const { itemId } = req.params
-  console.log("GET api/item/:itemId", itemId);
 
   try {
     const item = await Item.findById(itemId).populate('user').exec();
-    console.log("item", item, "\n");
-
     return res.json(item).status(200);
   } catch (err) {
     return res.status(400).json({ message: "Error. Could not get items" });
@@ -80,14 +77,12 @@ router.patch("/:itemId", auth.required, async (req, res) => {
 router.post("/", auth.required, async (req, res) => {
   const { payload: { id } } = req;
   const { body: { title, description, images, price, rating } } = req;
-  console.log("POST api/item", req.body);
 
   const user = await User.findById(id)
   try {
     const newItem = await new Item({ 
       title, description, images, price, rating, user: user._id 
     }).save();
-    console.log("newItem", newItem, "\n");
 
     res.status(201).json({
       title: newItem.title,

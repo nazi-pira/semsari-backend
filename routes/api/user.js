@@ -12,33 +12,24 @@ const router = Router();
 */
 router.post('/register', auth.optional, async (req, res) => {
   const { body } = req;
-  console.log("POST api/user/register", body);
 
   if (!body.email) {
-    return res.status(422).json({
-      errors: {
-        email: 'is required'
-      }
-    }); 
+    return res.status(422).json({ message: 'Email is required' }); 
   }
 
   if (!body.password) {
-    return res.status(422).json({
-      errors: {
-        password: 'is required'
-      }
-    });
+    return res.status(422).json({ message: 'Password is required' });
   }
   try {
     const newUser = await new User(body);
     newUser.setPassword(body.password);
-
     await newUser.save()
-    console.log("newUser", newUser, "\n");
-
-    res.status(203).json({ user: newUser.toAuthJSON() })
+    return res.status(203).json({ user: newUser.toAuthJSON() })
   } catch (err) {
-    return res.status(500).json({ message: err.message })
+    if (err.code === 11000) {
+      return res.status(409).json({ message: `${body.email} is already registered!` })
+    }
+    return res.status(500).json({ message: err.toString() })
   }
 });
 
@@ -48,28 +39,21 @@ router.post('/register', auth.optional, async (req, res) => {
 */
 router.post('/login', auth.optional, async (req, res, next) => {
   const { body } = req;
-  console.log("POST api/user/login", body);
   if (!body.email) {
-    return res.status(422).json({
-      message: 'email is required'
-    });
+    return res.status(422).json({ message: 'email is required' });
   }
 
   if (!body.password) {
-    return res.status(422).json({
-      message: 'password is required'
-    });
+    return res.status(422).json({ message: 'password is required' });
   }
 
   return passport.authenticate('local', { session: false }, (err, passportUser, info) => {
     if (err) {
       return next(err);
     }
-
     if (passportUser) {
       const user = passportUser;
       user.token = passportUser.generateJWT()
-      console.log("user", user, "\n");
       return res.json({ user: user.toAuthJSON() })
     }
     return res.status(400).send(info)
@@ -80,16 +64,18 @@ router.post('/login', auth.optional, async (req, res, next) => {
   Get Current User
   POST /api/user/current
 */
-router.get('/current', auth.required, async (req, res) => {
+router.get('/auth', auth.required, async (req, res) => {
   const { payload: { id } } = req;
+
   try {
     const user = await User.findById(id)
+
     if (!user) { 
-      res.status(400).json({ error: 'User not found' });
+      res.status(400).json({ message: 'User not found' });
     }
     res.json({ user: user.toAuthJSON() })
   } catch (err) {
-    res.status(400).json({ error: err })
+    res.status(err.code).json({ message: err.toString() })
   }
 });
 
