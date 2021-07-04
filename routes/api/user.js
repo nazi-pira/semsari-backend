@@ -62,7 +62,7 @@ router.post('/login', auth.optional, async (req, res, next) => {
 
 /* 
   Get Current User
-  POST /api/user/current
+  POST /api/user/auth
 */
 router.get('/auth', auth.required, async (req, res) => {
   const { payload: { id } } = req;
@@ -71,11 +71,11 @@ router.get('/auth', auth.required, async (req, res) => {
     const user = await User.findById(id)
 
     if (!user) { 
-      res.status(400).json({ message: 'User not found' });
+      return res.status(400).json({ message: 'User not found' });
     }
-    res.json({ user: user.toAuthJSON() })
+    return res.status(200).json({ user: user.toAuthJSON() })
   } catch (err) {
-    res.status(err.code).json({ message: err.toString() })
+    return res.status(err.code).json({ message: err.toString() })
   }
 });
 
