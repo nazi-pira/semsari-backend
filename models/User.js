@@ -37,6 +37,10 @@ const UserSchema = new Schema({
   },
   salt: {
     type: String
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   }
 });
 

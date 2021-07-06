@@ -20,6 +20,9 @@ router.post('/register', auth.optional, async (req, res) => {
   if (!body.password) {
     return res.status(422).json({ message: 'Password is required' });
   }
+  if (body?.isAdmin) {
+    return res.status(403).json({ message: 'Forbidden!' });
+  }
   try {
     const newUser = await new User(body);
     newUser.setPassword(body.password);
@@ -71,11 +74,33 @@ router.get('/auth', auth.required, async (req, res) => {
     const user = await User.findById(id)
 
     if (!user) { 
-      return res.status(400).json({ message: 'User not found' });
+      return res.status(400).json({ message: 'User not found!' });
     }
     return res.status(200).json({ user: user.toAuthJSON() })
   } catch (err) {
-    return res.status(err.code).json({ message: err.toString() })
+    return res.status(400).json({ message: err.toString() })
+  }
+});
+
+/* 
+  Get All Users (admin)
+  POST /api/user
+*/
+router.get('/', auth.required, async (req, res) => {
+  const { payload: { id } } = req;
+
+  try {
+    const admin = await User.findOne({ _id: id, isAdmin: true })
+    if (!admin) { 
+      return res.status(403).json({ message: 'Forbidden!' });
+    } 
+    const users = await User.find().select('name lastname image phone email')
+    const metadata = {
+      count: users.length
+    }
+    return res.status(200).json({ users, metadata })
+  } catch (err) {
+    return res.status(400).json({ message: err.toString() })
   }
 });
 

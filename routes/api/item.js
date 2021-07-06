@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { Router } from 'express'
 
 import Item from '../../models/Item'
@@ -12,24 +13,40 @@ const router = Router();
   GET /api/item 
 */
 router.get("/", async (req, res) => {
-  const { query: { search, minPrice, maxPrice, city, category, userId, sort, order, limit } } = req;
+  const { search, minPrice, maxPrice, city, userId, sort, order, limit, page, sold } = req.query
   const sorting = {}
   sorting[sort || "created"] = order || "desc"
+
+  const category = req.query.category ? req.query.category : null
+  const user = userId || city ? { ...userId && { _id: userId }, ...city && { city } } : { $exists: true }
 
   try {
     const items = await Item.find(
       {
-        title: { $regex: search || '.', $options: "i" },
-        $and: ([{ price: { $gte: minPrice || 0 } }, { price: { $lte: maxPrice || 99999999 } }]),
-        user: userId ? { _id: userId } : { $exists: true },
-        city,
-        category
+        title: { $regex: search || '', $options: "i" },
+        $and: [{ price: { $gte: minPrice || 0 } }, { price: { $lte: maxPrice || 99999999 } }],
+        user,
+        category,
+        sold: { $exists: sold === 'true' }
       }
-    ).sort(sorting).populate({ path: 'user', model: 'User', select: 'name lastname image' }).limit(Number(limit) || 1000)
-      .exec()
-    return res.json(items).status(200);
+    ).sort(sorting)
+      .populate({ path: 'user', model: 'User', select: 'name lastname image city' })
+      .limit(Number(limit) || 1000)
+      .skip(limit * (page ? page - 1 : 0))
+
+    // metadata
+    const prices = items.map((item) => item.price)
+    const metadata = { 
+      count: items.length,
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+      categories: items.map((item) => (item.category ? item.category : [])).flat(),
+      cities: [...new Set(items.map((item) => (item.user.city.toLowerCase() ?? null)))]
+    }
+    
+    return res.json({ items, metadata }).status(200);
   } catch (err) {
-    res.status(400).json({ message: "Error. Could not get items" });
+    return res.status(400).json({ message: err.message });
   }
 });
 
@@ -39,31 +56,27 @@ router.get("/", async (req, res) => {
 */
 router.get("/:itemId", async (req, res) => {
   const { itemId } = req.params
-
   try {
-    const item = await Item.findById(itemId).populate('user').exec();
-    return res.json(item).status(200);
+    const item = await Item.findById(itemId).populate({ path: 'user', model: 'User', select: 'name lastname image city' })
+    return res.json({ item }).status(200);
   } catch (err) {
     return res.status(400).json({ message: "Error. Could not get items" });
   }
 });
  
 /* 
-  Get Item by ID
+  Update Item by ID
   PATCH /api/item/:itemId
 */
 router.patch("/:itemId", auth.required, async (req, res) => {
   const { payload: { id } } = req;
   const { params: { itemId } } = req;
   const { body } = req;
-  console.log("PATCH api/item/:itemId", itemId, "\nbody:", body, "\nuserId:", id);
 
   try {
     const updatedItem = await Item.findOneAndUpdate(
       { _id: itemId, user: id }, { ...body }, { new: true }
     );
-    console.log("updatedItem", updatedItem, "\n");
-
     return res.status(200).json(updatedItem);
   } catch (err) {
     return res.status(400).json({ message: `Unable to PATCH itemId ${itemId}` });
@@ -76,15 +89,13 @@ router.patch("/:itemId", auth.required, async (req, res) => {
 */
 router.post("/", auth.required, async (req, res) => {
   const { payload: { id } } = req;
-  const { body: { title, description, images, price, rating } } = req;
+  const { body } = req;
 
   const user = await User.findById(id)
   try {
-    const newItem = await new Item({ 
-      title, description, images, price, rating, user: user._id 
-    }).save();
+    const newItem = await new Item({ ...body, user: user._id }).save();
 
-    res.status(201).json({
+    return res.status(201).json({
       title: newItem.title,
       description: newItem.description,
       price: newItem.price,
@@ -97,7 +108,7 @@ router.post("/", auth.required, async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(400).json({ err });
+    return res.status(400).json({ message: err.message });
   }
 });
 
@@ -106,11 +117,10 @@ router.post("/", auth.required, async (req, res) => {
   DELETE /api/item/:itemId
 */
 router.delete("/:itemId", auth.required, async (req, res) => {
+  const userId = req.payload.id;
   const { params: { itemId } } = req;
-  console.log("DELETE api/item/:itemId", itemId);
   try {
-    const deletedItem = await Item.findOneAndDelete({ _id: itemId })
-    console.log("deletedItem", deletedItem, "\n");
+    const deletedItem = await Item.findOneAndDelete({ _id: itemId, user: userId })
 
     res.status(200).json(deletedItem)
   } catch (err) {

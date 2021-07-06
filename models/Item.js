@@ -20,7 +20,14 @@ const ItemSchema = new Schema({
     default: Date.now
   },
   images: {
-    type: [String]
+    type: [String],
+    default: []
+  },
+  category: {
+    type: String
+  },
+  sold: {
+    type: Date
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
