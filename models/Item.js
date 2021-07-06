@@ -1,4 +1,5 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose';
+import connection from '../config/db';
 
 const ItemSchema = new Schema({
   title: {
@@ -30,10 +31,10 @@ const ItemSchema = new Schema({
     type: Date
   },
   user: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   }
 });
 
-export default mongoose.model('Item', ItemSchema);
+export default connection.model('Item', ItemSchema);

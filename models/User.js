@@ -1,7 +1,9 @@
 /* eslint-disable func-names */
-import mongoose, { Schema } from 'mongoose'
+import { Schema } from 'mongoose'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken';
+import connection from '../config/db';
+
 import { SECRET } from '../config/config';
 
 const UserSchema = new Schema({
@@ -76,4 +78,4 @@ UserSchema.methods.toAuthJSON = function () {
   };
 };
 
-export default mongoose.model('User', UserSchema);
+export default connection.model('User', UserSchema);

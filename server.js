@@ -1,15 +1,16 @@
+/* eslint-disable max-len */
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import mongoose from "mongoose";
 import path from "path"
 import session from "express-session"
 import errorHandler from 'errorhandler'
+// import { Grid } from 'gridfs-stream';
 
-import { MONGO_URL, SECRET, PORT } from './config/config'
+import { SECRET, PORT } from './config/config'
+
 import routes from './routes/index'
-
-mongoose.promise = global.Promise;
+import connection from './config/db'
 
 const app = express();
 
@@ -27,33 +28,48 @@ app.use(session({
   saveUninitialized: false
 }));
 
-mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
-mongoose.set('debug', true);
+// mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+// connection.set('debug', true);
 
 require('./models/User');
 require('./config/passport');
 
 app.use(routes)
 
-// Error handlers
-app.use((err, req, res) => {
-  res.status(err.status || 500);
-  res.json({
-    errors: {
-      message: err.message,
-      error: err ? process.env.NODE_ENV !== 'production' : null
-    }
-  });
-});
+// // Error handlers
+// app.use((err, req, res, next) => {
+//   console.log("\n\n>>err", err.message);
+//   console.log(">>req", req);
+//   console.log(">>res", res, "\n\n");
+
+//   return res.status(err.status || 500).json({
+//     message: process.env.NODE_ENV !== 'production' ? err.message : null,
+//     error: process.env.NODE_ENV !== 'production' ? err.toString() : null
+//   });
+// });
+
+// Error Handling Helper Function
+function asyncHelper(fn) {
+  return function (req, res, next) {
+    fn(req, res, next).catch(next);
+  };
+}
+
+// Express Error Handling async/await
+app.get('*', asyncHelper(async (_req, _res) => {
+  await new Promise((resolve) => setTimeout(() => resolve(), 40));
+  throw new Error('Error found');
+}));
 
 app.use(errorHandler());
+console.log("\n\n>>>> CONNECTION:", connection.readyState);
 
-// Middleware to check so MongoDB connection is OK
-app.use((res, req, next) => {
-  if (mongoose.connection.readyState === 1) {
+app.use((res, _req, next) => {
+  console.log("\n\n>>>> CONNECTION:", connection.readyState);
+  if (connection.readyState === 1) {
     next();
   } else {
-    res.status(503).json({ error: "Service unavailable" });
+    return res.status(503).json({ message: "Service unavailable" });
   }
 });
 
