@@ -1,11 +1,11 @@
-/* eslint-disable max-len */
+/* eslint-disable func-names */
+/* eslint-disable no-unused-vars */
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path"
 import session from "express-session"
 import errorHandler from 'errorhandler'
-// import { Grid } from 'gridfs-stream';
 
 import { SECRET, PORT } from './config/config'
 
@@ -28,25 +28,10 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
-// connection.set('debug', true);
-
 require('./models/User');
 require('./config/passport');
 
 app.use(routes)
-
-// // Error handlers
-// app.use((err, req, res, next) => {
-//   console.log("\n\n>>err", err.message);
-//   console.log(">>req", req);
-//   console.log(">>res", res, "\n\n");
-
-//   return res.status(err.status || 500).json({
-//     message: process.env.NODE_ENV !== 'production' ? err.message : null,
-//     error: process.env.NODE_ENV !== 'production' ? err.toString() : null
-//   });
-// });
 
 // Error Handling Helper Function
 function asyncHelper(fn) {
@@ -62,10 +47,8 @@ app.get('*', asyncHelper(async (_req, _res) => {
 }));
 
 app.use(errorHandler());
-console.log("\n\n>>>> CONNECTION:", connection.readyState);
 
 app.use((res, _req, next) => {
-  console.log("\n\n>>>> CONNECTION:", connection.readyState);
   if (connection.readyState === 1) {
     next();
   } else {
